@@ -187,4 +187,3 @@ if submitted:
    else:
     st.warning("please enter your Symptoms")
 
-st.markdown('<a href="http://127.0.0.1:8000/login" target="_self">Logout</a>', unsafe_allow_html=True)
