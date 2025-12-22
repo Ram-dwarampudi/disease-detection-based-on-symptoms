@@ -183,7 +183,6 @@ if submitted:
     except:
         print("New Disease")
 
-    st.markdown('<a href="tel:9703409307">Health Helpline</a>', unsafe_allow_html=True)
 
    else:
     st.warning("please enter your Symptoms")
