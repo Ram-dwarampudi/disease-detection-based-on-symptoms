@@ -139,7 +139,7 @@ disease_list = ['itching',
 'yellow_crust_ooze']
 
 st.title("Symptom-Based Disease Prediction")
-
+st.info("⚠️ This application is for educational purposes only and not a medical diagnosis. Please consult a qualified doctor.")
 
 list = ['Low','Moderate','High']
 
