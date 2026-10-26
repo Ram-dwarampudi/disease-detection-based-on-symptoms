@@ -4,7 +4,7 @@ from sklearn.tree import DecisionTreeClassifier
 import pickle
 
 # Load dataset
-data = pd.read_csv("Training.csv")
+data = pd.read_csv("Training.csv ")
 
 # Split features and target
 X = data.drop("prognosis", axis=1)
