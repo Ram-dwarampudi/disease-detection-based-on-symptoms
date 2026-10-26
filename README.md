@@ -10,6 +10,7 @@ It is built using Python, Streamlit, and Scikit-learn, with additional medical d
 
 ⚠️ Note: This application is for educational purposes only and not a replacement for professional medical diagnosis.
 
+
 🚀 Features
 
 ✅ Symptom-based disease prediction
