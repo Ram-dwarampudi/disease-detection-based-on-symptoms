@@ -263,25 +263,6 @@ severity_options = ['Low', 'Moderate', 'High']
 # SIDEBAR
 # ----------------------------------------------------------------------------
 with st.sidebar:
-    st.markdown("""
-    <div style="text-align:center; padding: 0.6rem 0 1.2rem 0;">
-        <svg width="88" height="88" viewBox="0 0 88 88" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-                <linearGradient id="sidebarGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stop-color="#0f766e"/>
-                    <stop offset="100%" stop-color="#06b6d4"/>
-                </linearGradient>
-            </defs>
-            <circle cx="44" cy="44" r="44" fill="url(#sidebarGrad)"/>
-            <path d="M30 24v14a10 10 0 0020 0V24" stroke="white" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-            <line x1="30" y1="24" x2="30" y2="18" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
-            <line x1="50" y1="24" x2="50" y2="18" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
-            <circle cx="60" cy="52" r="6.5" fill="none" stroke="white" stroke-width="3.2"/>
-            <line x1="50" y1="38" x2="50" y2="48" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
-            <path d="M50 48h6" stroke="white" stroke-width="3.2" stroke-linecap="round"/>
-        </svg>
-    </div>
-    """, unsafe_allow_html=True)
 
     st.markdown("""
     <div class="sidebar-card">
