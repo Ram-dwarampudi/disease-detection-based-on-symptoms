@@ -390,8 +390,12 @@ if submitted:
         for j in disease_list:
             data.append(1 if j in Symptoms else 0)
 
-        features_df = pd.DataFrame([data], columns=disease_list)
-        output = model.predict(features_df)
+        feature_names = getattr(model, 'feature_names_in_', None)
+        if feature_names is not None and len(feature_names) == len(data):
+            features_df = pd.DataFrame([data], columns=feature_names)
+            output = model.predict(features_df)
+        else:
+            output = model.predict(np.array(data).reshape(1, -1))
         pred_disease = output[0]
 
         # Case-insensitive & trimmed matching in Precautions.xlsx
