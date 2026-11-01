@@ -2,6 +2,7 @@ import streamlit as st
 import pickle
 import numpy as np
 import pandas as pd
+import os
 
 # -----------------------------------------------------------------------------
 # PAGE CONFIG
@@ -221,7 +222,9 @@ st.markdown("""
 # ----------------------------------------------------------------------------
 # LOAD MODEL & DATA
 # ----------------------------------------------------------------------------
-model = pickle.load(open('model copy.pkl', 'rb'))
+model_file = 'model copy.pkl' if os.path.exists('model copy.pkl') and os.path.getsize('model copy.pkl') > 100 else 'model.pkl'
+with open(model_file, 'rb') as f:
+    model = pickle.load(f)
 
 disease_list = ['itching', 'skin_rash', 'nodal_skin_eruptions', 'continuous_sneezing',
     'shivering', 'chills', 'joint_pain', 'stomach_pain', 'acidity', 'ulcers_on_tongue',
@@ -353,8 +356,47 @@ with st.form("my_form"):
 
 st.markdown('</div>', unsafe_allow_html=True)
 
+# Fallback disease information for conditions not present in Precautions.xlsx
+FALLBACK_DISEASE_INFO = {
+    "Fungal infection": {
+        "meaning": "A fungal infection (mycosis) is an inflammatory skin condition caused by fungi, commonly leading to rashes, itching, and skin eruptions (e.g. ringworm, athlete's foot).",
+        "specialist": "Dermatologist",
+        "self_care": "Keep the affected skin clean and dry, wear loose-fitting breathable clothing, avoid sharing personal items, and apply prescribed antifungal medications."
+    },
+    "Allergy": {
+        "meaning": "An exaggerated immune response to foreign substances (allergens) such as pollen, pet dander, foods, or dust, causing sneezing, rashes, or watery eyes.",
+        "specialist": "Allergist / Immunologist",
+        "self_care": "Identify and avoid known allergens, stay indoors during peak pollen counts, use saline nasal rinses, and take antihistamines if recommended by a doctor."
+    },
+    "Acne": {
+        "meaning": "A common skin condition that occurs when hair follicles become plugged with sebum and dead skin cells, causing pimples, blackheads, or cysts.",
+        "specialist": "Dermatologist",
+        "self_care": "Cleanse gently twice daily, avoid scrubbing or picking at blemishes, use oil-free non-comedogenic skincare products, and maintain hydration."
+    },
+    "Peptic ulcer diseae": {
+        "meaning": "Painful sores in the lining of the stomach or small intestine, often caused by Helicobacter pylori bacterial infection or frequent NSAID painkiller use.",
+        "specialist": "Gastroenterologist",
+        "self_care": "Eat small and regular meals, limit acidic and spicy foods, avoid tobacco and alcohol, and avoid self-medicating with ibuprofen or aspirin."
+    },
+    "(vertigo) Paroymsal  Positional Vertigo": {
+        "meaning": "Benign Paroxysmal Positional Vertigo (BPPV) is a sensory disorder of the inner ear causing brief episodes of dizziness or spinning sensations with head movement.",
+        "specialist": "ENT Specialist / Neurologist",
+        "self_care": "Move head slowly, sit down immediately upon feeling dizzy, use good lighting if walking at night, and consult an ENT specialist for canalith repositioning."
+    },
+    "Hyperthyroidism": {
+        "meaning": "An overactive thyroid condition where the thyroid gland produces excess thyroid hormones, accelerating the body's metabolic rate.",
+        "specialist": "Endocrinologist",
+        "self_care": "Maintain balanced caloric and nutritional intake, minimize caffeine and stress, avoid excess dietary iodine, and schedule regular thyroid checks."
+    },
+    "hepatitis A": {
+        "meaning": "A viral liver infection typically transmitted through contaminated food or water, leading to fatigue, nausea, abdominal discomfort, and jaundice.",
+        "specialist": "Hepatologist / Gastroenterologist",
+        "self_care": "Get plenty of rest, maintain hydration with electrolytes, eat bland and nutritious foods, practice meticulous hand hygiene, and avoid alcohol."
+    }
+}
+
 # ----------------------------------------------------------------------------
-# PREDICTION LOGIC (unchanged)
+# PREDICTION LOGIC
 # ----------------------------------------------------------------------------
 if submitted:
     if len(Symptoms) != 0:
@@ -364,69 +406,84 @@ if submitted:
 
         data, Severity1 = [], []
         for j in Symptoms:
-            z = df1[df1['symptoms'].str.contains(j)]
-            Severity1.append(z['Severity Level'].iloc[0])
+            z = df1[df1['symptoms'].str.contains(j, case=False, regex=False)]
+            if len(z) > 0 and 'Severity Level' in z.columns:
+                Severity1.append(z['Severity Level'].iloc[0])
 
         for j in disease_list:
             data.append(1 if j in Symptoms else 0)
 
-        output = model.predict(np.array(data).reshape(1, -1))
-        df = df[df['Diseases'].str.contains(output[0])]
+        features_df = pd.DataFrame([data], columns=disease_list)
+        output = model.predict(features_df)
+        pred_disease = output[0]
 
-        try:
-            meaning = df["Disease Meaning"].values[0]
-            specialist = df["Specalist"].values[0]
-            self_care = df["SELF CARE"].values[0]
-            final_severity = Severity if Severity == 'High' else max(Severity1, key=Severity1.count)
+        # Case-insensitive & trimmed matching in Precautions.xlsx
+        matched_df = df[df['Diseases'].astype(str).str.strip().str.lower() == pred_disease.strip().lower()]
+        if matched_df.empty:
+            matched_df = df[df['Diseases'].astype(str).apply(
+                lambda x: x.strip().lower() in pred_disease.lower() or pred_disease.lower() in x.strip().lower()
+            )]
 
-            sev_class = {"Low": "sev-low", "Moderate": "sev-moderate", "High": "sev-high"}.get(final_severity, "sev-moderate")
+        if not matched_df.empty:
+            meaning = matched_df["Disease Meaning"].values[0]
+            specialist = matched_df["Specalist"].values[0]
+            self_care = matched_df["SELF CARE"].values[0]
+        elif pred_disease in FALLBACK_DISEASE_INFO:
+            fallback = FALLBACK_DISEASE_INFO[pred_disease]
+            meaning = fallback["meaning"]
+            specialist = fallback["specialist"]
+            self_care = fallback["self_care"]
+        else:
+            meaning = "A health condition characterized by the symptoms reported."
+            specialist = "General Physician"
+            self_care = "Rest well, drink plenty of fluids, monitor your symptoms, and visit a doctor for clinical testing."
 
-            st.markdown(f"""
-            <div class="result-header">
-                <div class="label">Predicted Condition</div>
-                <p class="disease-name">🩹 {output[0]}</p>
-            </div>
-            """, unsafe_allow_html=True)
+        final_severity = Severity if Severity == 'High' else (max(Severity1, key=Severity1.count) if Severity1 else Severity)
+        sev_class = {"Low": "sev-low", "Moderate": "sev-moderate", "High": "sev-high"}.get(final_severity, "sev-moderate")
 
-            c1, c2, c3 = st.columns(3)
-            with c1:
-                st.markdown(f"""
-                <div class="info-tile">
-                    <div class="icon">📖</div>
-                    <div class="title">What it means</div>
-                    <div class="body">{meaning}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with c2:
-                st.markdown(f"""
-                <div class="info-tile">
-                    <div class="icon">👨‍⚕️</div>
-                    <div class="title">Consult a</div>
-                    <div class="body">{specialist}</div>
-                </div>
-                """, unsafe_allow_html=True)
-            with c3:
-                st.markdown(f"""
-                <div class="info-tile">
-                    <div class="icon">📊</div>
-                    <div class="title">Severity level</div>
-                    <div class="body"><span class="severity-pill {sev_class}">{final_severity}</span></div>
-                </div>
-                """, unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="result-header">
+            <div class="label">Predicted Condition</div>
+            <p class="disease-name">🩹 {pred_disease}</p>
+        </div>
+        """, unsafe_allow_html=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
+        c1, c2, c3 = st.columns(3)
+        with c1:
             st.markdown(f"""
             <div class="info-tile">
-                <div class="icon">🌿</div>
-                <div class="title">Self-care & precautions</div>
-                <div class="body">{self_care}</div>
+                <div class="icon">📖</div>
+                <div class="title">What it means</div>
+                <div class="body">{meaning}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"""
+            <div class="info-tile">
+                <div class="icon">👨‍⚕️</div>
+                <div class="title">Consult a</div>
+                <div class="body">{specialist}</div>
+            </div>
+            """, unsafe_allow_html=True)
+        with c3:
+            st.markdown(f"""
+            <div class="info-tile">
+                <div class="icon">📊</div>
+                <div class="title">Severity level</div>
+                <div class="body"><span class="severity-pill {sev_class}">{final_severity}</span></div>
             </div>
             """, unsafe_allow_html=True)
 
-            st.markdown("<br>", unsafe_allow_html=True)
-            st.info("💡 Remember: this prediction is a guide, not a diagnosis. If symptoms persist or worsen, please see a doctor.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="info-tile">
+            <div class="icon">🌿</div>
+            <div class="title">Self-care & precautions</div>
+            <div class="body">{self_care}</div>
+        </div>
+        """, unsafe_allow_html=True)
 
-        except Exception:
-            st.error("This looks like a condition we don't have detailed information for yet. Please consult a doctor for an accurate diagnosis.")
+        st.markdown("<br>", unsafe_allow_html=True)
+        st.info("💡 Remember: this prediction is a guide, not a diagnosis. If symptoms persist or worsen, please see a doctor.")
     else:
         st.warning("👆 Please select at least one symptom to get a prediction.")
