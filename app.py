@@ -94,16 +94,16 @@ st.markdown("""
         backdrop-filter: blur(4px);
     }
 
-    /* Section card */
-    .card {
-        background: white;
-        border-radius: 18px;
-        padding: 1.8rem 1.8rem;
-        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
-        border: 1px solid #eef1f6;
-        margin-bottom: 1.4rem;
+    /* Form card */
+    [data-testid="stForm"], .card {
+        background: white !important;
+        border-radius: 18px !important;
+        padding: 1.8rem 1.8rem !important;
+        box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06) !important;
+        border: 1px solid #eef1f6 !important;
+        margin-bottom: 1.4rem !important;
     }
-    .card h3 {
+    [data-testid="stForm"] h3, .card h3 {
         font-family: 'Poppins', sans-serif;
         font-weight: 700;
         color: #0f172a;
@@ -332,10 +332,8 @@ st.warning("⚠️ This tool is for educational purposes only and is **not** a s
 # ----------------------------------------------------------------------------
 # INPUT FORM
 # ----------------------------------------------------------------------------
-st.markdown('<div class="card">', unsafe_allow_html=True)
-st.markdown("### 🧾 Tell us how you're feeling")
-
 with st.form("my_form"):
+    st.markdown("### 🧾 Tell us how you're feeling")
     col1, col2 = st.columns([2.2, 1])
 
     with col1:
@@ -353,8 +351,6 @@ with st.form("my_form"):
 
     st.markdown("<br>", unsafe_allow_html=True)
     submitted = st.form_submit_button("🔍 Predict My Condition")
-
-st.markdown('</div>', unsafe_allow_html=True)
 
 # Fallback disease information for conditions not present in Precautions.xlsx
 FALLBACK_DISEASE_INFO = {
